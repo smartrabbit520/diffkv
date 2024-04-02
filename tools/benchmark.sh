@@ -8,6 +8,8 @@ if [ $# -ne 1 ]; then
   exit 0
 fi
 
+syncval="1"
+
 # Make it easier to run only the compaction test. Getting valid data requires
 # a number of iterations and having an ability to run the test separately from
 # rest of the benchmarks helps.
@@ -48,6 +50,7 @@ cache_size=${CACHE_SIZE:-$((1 * G))}
 compression_max_dict_bytes=${COMPRESSION_MAX_DICT_BYTES:-0}
 compression_type=${COMPRESSION_TYPE:-snappy}
 duration=${DURATION:-0}
+blob_file_discardable_ratio=${BLOB_FILE_DISCARDABLE_RATIO:-0.3}
 
 num_keys=${NUM_KEYS:-$((1 * G))}
 key_size=${KEY_SIZE:-20}
@@ -72,7 +75,7 @@ const_params="
   \
   --num_levels=7 \
   --write_buffer_size=$((128 * M)) \
-  --level_compaction_dynamic_level_bytes=true \
+  --level_compaction_dynamic_level_bytes=false \
   --max_write_buffer_number=5 \
   --target_file_size_base=$((8 * M)) \
   --max_bytes_for_level_base=$((512 * M)) \
@@ -83,6 +86,7 @@ const_params="
   --open_files=40960 \
   --statistics=1 \
   --verify_checksum=1 \
+  --histogram=1 \
   \
   --bytes_per_sync=$((1 * M)) \
   --wal_bytes_per_sync=$((512 * K)) \
@@ -147,7 +151,7 @@ function run_bulkload {
 
   # TITAN: The implementation of memtable is changed from vector to default skiplist. Because GC in titan need to get in memtable. Vector will cause poor performance.
   echo "Bulk loading $num_keys random keys"
-  cmd="./titandb_bench --benchmarks=fillrandom \
+  cmd="../build/titandb_bench --benchmarks=fillrandom \
        $const_params \
        --use_existing_db=0 \
        --disable_auto_compactions=1 \
@@ -161,7 +165,7 @@ function run_bulkload {
   eval $cmd
   summarize_result $output_dir/benchmark_bulkload_fillrandom.log bulkload fillrandom
   echo "Compacting..."
-  cmd="./titandb_bench --benchmarks=compact \
+  cmd="../build/titandb_bench --benchmarks=compact \
        --use_existing_db=1 \
        --disable_auto_compactions=1 \
        --sync=0 \
@@ -243,6 +247,48 @@ function run_manual_compaction_worker {
   # Can't use summarize_result here. One way to analyze the results is to run
   # "grep real" on the resulting log files.
 }
+
+
+function run_ycsb_a {
+  output_name=$1
+  grep_name=$2
+  benchmarks=$3
+  op_trace_file_name=""
+  # op_trace_file_name="$output_dir/benchmark_${output_name}.t${num_threads}.s${syncval}.op_trace"
+  if [ ! -z $op_trace_file ]; then
+    op_trace_file_name=$op_trace_file
+  fi
+  echo "Do $num_keys random $output_name"
+  log_file_name="$output_dir/benchmark_${output_name}.t${num_threads}.s${syncval}.log"
+  # time_cmd=$( get_cmd $log_file_name.time )
+  # gdb --args
+  # cmd="$time_cmd  gdb --args ./db_bench --benchmarks=$benchmarks,stats \
+  cmd="../build/titandb_bench --benchmarks=$benchmarks,stats \
+       --use_existing_db=0 \
+       --sync=$syncval \
+       $const_params \
+       --threads=$num_threads \
+       --merge_operator=\"put\" \
+       --seed=$( date +%s ) \
+       --report_file=${log_file_name}.r.csv \
+       --mix_get_ratio=0.5 \
+       --mix_put_ratio=0.5 \
+       --open_files=512 \
+       --blob_file_discardable_ratio=$blob_file_discardable_ratio \
+       2>&1 | tee -a $log_file_name"
+  if [[ "$job_id" != "" ]]; then
+    echo "Job ID: ${job_id}" > $log_file_name
+    echo $cmd | tee -a $log_file_name
+  else
+    echo $cmd | tee $log_file_name
+  fi
+  # start_stats $log_file_name.stats
+  # space_monitor_file_name="$output_dir/dir_size.log"
+  eval $cmd
+  # stop_stats $log_file_name.stats
+  summarize_result $log_file_name ${output_name}.t${num_threads}.s${syncval} $grep_name
+}
+
 
 function run_univ_compaction {
   # Always ask for I/O statistics to be measured.
@@ -448,6 +494,8 @@ for job in ${jobs[@]}; do
     run_readwhile merging
   elif [ $job = fwdrangewhilewriting ]; then
     run_rangewhile writing $job false
+  elif [ $job = ycsb_a ]; then
+    run_ycsb_a ycsb_a ycsb_a ycsb_a
   elif [ $job = revrangewhilewriting ]; then
     run_rangewhile writing $job true
   elif [ $job = fwdrangewhilemerging ]; then
