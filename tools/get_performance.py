@@ -43,7 +43,6 @@ def read_performance(benchmark_log_path):
     # Reverse the benchmark_log
     benchmark_log.reverse()
 
-
     ### part 1
 
     pattern = r"^Cumulative writes: .*"
@@ -60,7 +59,7 @@ def read_performance(benchmark_log_path):
     # Write rate
     write_rate=numbers[5]
 
-
+  
     ### part 2
 
     # pattern = r"^Cumulative compaction: .*"
@@ -171,23 +170,21 @@ def read_performance(benchmark_log_path):
             del performance_metrics['read_microsecond_median']
             del performance_metrics['read_microsecond_average']
         print("Microseconds per read not found")
-    
+        
     ### part 7
     # caclulate the user space and space amp
     
-    # workload_path = "/mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-100000000.log_run.formated"
+    # workload_path = "/mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-50000000.log_run.formated"
     # keys = set()
     # with open(workload_path, 'r') as file:
     #     lines = file.readlines()
     #     for line in lines:
-    #         if line[0] == 'READ':
-    #             continue
     #         key = line.split()[1]
     #         keys.add(key)
     
     # 单位：字节
     # user_space = len(keys) * 1000 + sum([len(key) for key in keys])
-   
+    
     user_space = 5628895880 # /mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-100000000.log_run.formated
     # user_space = 5604959453 # /mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-50000000.log_run.formated
     
@@ -229,7 +226,7 @@ def read_performance(benchmark_log_path):
     if garbage_size_numeric >= 1024:
         garbage_size_numeric /= 1024
         garbage_size_unit = 'T'
-        
+
     if garbage_size_unit == 'G':
         garbage_size = f"{garbage_size_numeric:.2f}"
     else:
@@ -259,10 +256,10 @@ def read_performance(benchmark_log_path):
 
 dirs=os.listdir(data_dir)
 
+# delete the dirs that not start with "with_gc"
 dirs = [d for d in dirs if os.path.isdir(os.path.join(data_dir, d))]
 value_size = [name.split('_')[2] for name in dirs]
 blob_file_discardable_ratio = [name.split('_')[7] for name in dirs]
-
 
 for data_with_param_dir in dirs:
     print("Current data_with_param_dir:", data_with_param_dir)
@@ -270,9 +267,10 @@ for data_with_param_dir in dirs:
     read_performance(benchmark_log_path)
     
 # Create a DataFrame from the performance metrics dictionary
-df = pd.DataFrame(performance_metrics, indexs=blob_file_discardable_ratio)
+df = pd.DataFrame(performance_metrics, index=blob_file_discardable_ratio)
 df.insert(0, 'blob_file_discardable_ratio', blob_file_discardable_ratio)
 df.insert(1, 'value_size', value_size)
+df = df.sort_values('blob_file_discardable_ratio')
 print(df)
 
 # Output to data_dir
@@ -280,7 +278,8 @@ output_file = os.path.join(data_dir, "performance_metrics.csv")
 df.to_csv(output_file)
 print("Output to", output_file)
 
-draw=False
+# draw=False
+draw=True
 if not draw:
     exit()
     
