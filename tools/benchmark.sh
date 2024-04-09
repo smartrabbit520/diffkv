@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # REQUIRE: titandb_bench binary exists in the current directory
 
-if [ $# -ne 1 ]; then
+if [ $# -lt 1 ]; then
   echo -n "./benchmark.sh [bulkload/fillseq/overwrite/filluniquerandom/"
   echo    "readrandom/readwhilewriting/readwhilemerging/updaterandom/"
   echo    "mergerandom/randomtransaction/compact]"
@@ -51,11 +51,12 @@ compression_max_dict_bytes=${COMPRESSION_MAX_DICT_BYTES:-0}
 compression_type=${COMPRESSION_TYPE:-snappy}
 duration=${DURATION:-0}
 blob_file_discardable_ratio=${BLOB_FILE_DISCARDABLE_RATIO:-0.3}
+bench_args=$*
 
 num_keys=${NUM_KEYS:-$((1 * G))}
 key_size=${KEY_SIZE:-20}
 value_size=${VALUE_SIZE:-100}
-
+write_buffer_size=${WRITE_BUFFER_SIZE:-$((128 * M))}
 const_params="
   --db=$DB_DIR \
   --wal_dir=$WAL_DIR \
@@ -91,7 +92,11 @@ const_params="
   --bytes_per_sync=$((1 * M)) \
   --wal_bytes_per_sync=$((512 * K)) \
   \
-  --use_titan=$TITAN"
+  --write_buffer_size=$write_buffer_size \
+  --blob_db_enable_gc=true \
+  --use_titan=$TITAN \
+  $bench_args" 
+  
 
 if [ $duration -gt 0 ]; then
   const_params="$const_params --duration=$duration"

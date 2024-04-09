@@ -1015,6 +1015,10 @@ DEFINE_uint64(
     "If non-zero, db_bench will rate-limit the writes going into RocksDB. This "
     "is the global rate in bytes/second.");
 
+DEFINE_string(
+    read_ycsb_file, "error",
+    "read_ycsb_file");
+
 // the parameters of mix_graph
 DEFINE_double(key_dist_a, 0.0,
               "The parameter 'a' of key access distribution model "
@@ -4189,7 +4193,12 @@ class Benchmark {
     RandomGenerator gen;
     // read the file
     std::vector<std::string> files = {
-        "/mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-100000000.log_run.formated"
+        FLAGS_read_ycsb_file
+        // "/mnt/nvme0n1/YCSB-C/data/workloada_1024kb_100GB_0.9_zipfian.log_run.formated"
+        // "/mnt/nvme0n1/YCSB-C/data/workloada_16384kb_100GB_0.9_zipfian.log_run.formated"
+        // "/mnt/nvme0n1/YCSB-C/data/workloada_65536kb_100GB_0.9_zipfian.log_run.formated"
+        // "/mnt/nvme0n1/YCSB-C/data/workloada_4096kb_100GB_0.9_zipfian.log_run.formated"
+        // "/mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-100000000.log_run.formated"
         // "/mnt/nvme1n1/zt/YCSB-C/data/workloada-load-10000000-50000000.log_run.formated"
         // "/mnt/nvme1n1/zt/ycsb-workload-gen/data/workloada-run-10000000-50000000.log.formated"
         // "/mnt/nvme1n1/zt/ycsb-workload-gen/data/workloada-load-10000000-10000000.log.formated"
