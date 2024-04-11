@@ -26,7 +26,7 @@ function call_run_blob() {
 }
 
 now_time=$(date +"%Y-%m-%d-%H:%M:%S")
-# now_time=2024-03-24-13:42:46
+now_time=2024-04-11-00:56:13
 db_info=diffkv_${now_time}_ycsb_a_100M_0.99_adaptive_sst_file_size
 db_dir=/mnt/nvme0n1/xq/mlsm/database_comparison/${db_info}
 num_keys=5000000
@@ -36,7 +36,10 @@ enable_blob_gc=true
 # value_sizes=(1024 4096 16384)
 value_sizes=(4096 1024)
 git_result_dir=/mnt/nvme1n1/xq/git_result/rocksdb_kv_sep/result/${db_info}
-blob_file_discardable_ratios=(0.2 0.4 0.6 0.8 1.0 0.0)
+# blob_file_discardable_ratios=(0.2 0.4 0.6 0.8 1.0 0.0)
+# blob_file_discardable_ratios=(0.2 0.4)
+# blob_file_discardable_ratios=(0.6 0.8)
+blob_file_discardable_ratios=(1.0 0.0)
 
 for blob_file_discardable_ratio in "${blob_file_discardable_ratios[@]}" ; do
 for value_size in "${value_sizes[@]}" ; do
@@ -57,10 +60,10 @@ for value_size in "${value_sizes[@]}" ; do
   > $output_text
 
   # Count the number of .blob files
-  num_files=$(find $with_gc_dir/titandb -type f -name "*.blob" | wc -l)
+  num_files=$(find $with_gc_dir/blob_dir -type f -name "*.blob" | wc -l)
 
   # Calculate the total size of .blob files
-  total_size=$(du -csh $with_gc_dir/titandb/*.blob | grep total$ | awk '{print $1}')
+  total_size=$(du -csh $with_gc_dir/blob_dir/*.blob | grep total$ | awk '{print $1}')
 
   # Output the results to the output file
   echo $num_files >> $output_text

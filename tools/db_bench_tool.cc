@@ -741,11 +741,11 @@ DEFINE_bool(fifo_compaction_allow_compaction, true,
 DEFINE_uint64(fifo_compaction_ttl, 0, "TTL for the SST Files in seconds.");
 
 // Blob DB Options
-DEFINE_bool(use_blob_db, false,
+DEFINE_bool(use_blob_db, true,
             "Open a BlobDB instance. "
             "Required for large value benchmark.");
 
-DEFINE_bool(blob_db_enable_gc, false, "Enable BlobDB garbage collection.");
+DEFINE_bool(blob_db_enable_gc, true, "Enable BlobDB garbage collection.");
 
 DEFINE_bool(blob_db_is_fifo, false, "Enable FIFO eviction strategy in BlobDB.");
 
